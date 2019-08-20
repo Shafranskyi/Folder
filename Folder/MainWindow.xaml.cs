@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Forms;
@@ -16,7 +17,10 @@ namespace Folder
     /// </summary>
     public partial class MainWindow : Window
     {
+        CancellationTokenSource cts;
         string GetPath { get; set; }
+
+        bool ok = false;
 
         GetFileWithData getFileWithData = null;
 
@@ -31,7 +35,7 @@ namespace Folder
         private void InitializeFileSystemObjects()
         {
             var drives = DriveInfo.GetDrives();
-            DriveInfo.GetDrives().ToList().ForEach(drive =>
+            DriveInfo.GetDrives().Where(drive => drive.IsReady == true).ToList().ForEach(drive =>
             {
                 var fileSystemObject = new FileSystemObjectInfo(drive);
                 fileSystemObject.BeforeExplore += FileSystemObject_BeforeExplore;
@@ -51,52 +55,121 @@ namespace Folder
             Cursor = System.Windows.Input.Cursors.Wait;
         }
 
-        public async void GET_XML_Click(object sender, RoutedEventArgs e)
+        private async void GET_XML_Click(object sender, RoutedEventArgs e)
         {
-            using (var fbd = new FolderBrowserDialog())
+            ok = false;
+            try
             {
-                if (fbd.ShowDialog() == System.Windows.Forms.DialogResult.OK && !string.IsNullOrWhiteSpace(fbd.SelectedPath))
+                cts = new CancellationTokenSource();
+                using (var fbd = new FolderBrowserDialog() { Description = "Select the folder to save the file, please", RootFolder = Environment.SpecialFolder.Desktop })
                 {
-                    getFileWithData.SavePath = fbd.SelectedPath;
-                    getFileWithData.Path = GetPath;
+                    if (fbd.ShowDialog() == System.Windows.Forms.DialogResult.OK && !string.IsNullOrWhiteSpace(fbd.SelectedPath))
+                    {
+                        if (System.Windows.MessageBox.Show("Save here:" + fbd.SelectedPath + "?", "Question", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+                        {
+                            ok = true;
+                            getFileWithData.SavePath = fbd.SelectedPath;
+                            getFileWithData.Path = GetPath;
+                        }
+                    }
+                }
+                if (ok == true)
+                {
+                    cts = new CancellationTokenSource();
+                    spinner.Visibility = Visibility.Visible;
+                    mission.Visibility = Visibility.Hidden;
+                    cancel.Visibility = Visibility.Visible;
+                    select.Text = "XML layout you selected for your file! Expect, please.";
+                    json.IsEnabled = xml.IsEnabled = false;
+                    await getFileWithData.GetFoldersXML(cts.Token);
+                    spinner.Visibility = Visibility.Hidden;
+                    mission.Visibility = Visibility.Visible;
+                    cancel.Visibility = Visibility.Hidden;
+                    select.Text = "";
                 }
             }
-            await getFileWithData.GetFoldersXML();
+            catch (TaskCanceledException ex)
+            {
+                spinner.Visibility = Visibility.Hidden;
+                select.Text = ex.Message;
+                cancel.Visibility = Visibility.Hidden;
+                path.Text = "";
+            }
         }
 
-        public async void GET_JSON_Click(object sender, RoutedEventArgs e)
+        private async void GET_JSON_Click(object sender, RoutedEventArgs e)
         {
-            using (var fbd = new FolderBrowserDialog())
+            ok = false;
+            try
             {
-                if (fbd.ShowDialog() == System.Windows.Forms.DialogResult.OK && !string.IsNullOrWhiteSpace(fbd.SelectedPath))
+                cts = new CancellationTokenSource();
+                using (var fbd = new FolderBrowserDialog() { Description = "Select the folder to save the file, please", RootFolder = Environment.SpecialFolder.Desktop })
                 {
-                    getFileWithData.SavePath = fbd.SelectedPath;
-                    getFileWithData.Path = GetPath;
+                    if (fbd.ShowDialog() == System.Windows.Forms.DialogResult.OK && !string.IsNullOrWhiteSpace(fbd.SelectedPath))
+                    {
+                        if (System.Windows.MessageBox.Show("Save here:" + fbd.SelectedPath + "?", "Question", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+                        {
+                            ok = true;
+                            getFileWithData.SavePath = fbd.SelectedPath;
+                            getFileWithData.Path = GetPath;
+                        }
+                    }
+                }
+                if (ok == true)
+                {
+                    cts = new CancellationTokenSource();
+                    spinner.Visibility = Visibility.Visible;
+                    mission.Visibility = Visibility.Hidden;
+                    cancel.Visibility = Visibility.Visible;
+                    select.Text = "JSON layout you selected for your file! Expect, please.";
+                    json.IsEnabled = xml.IsEnabled = false;
+                    var d = await getFileWithData.GetFoldersJSON(cts.Token);
+                    spinner.Visibility = Visibility.Hidden;
+                    mission.Visibility = Visibility.Visible;
+                    cancel.Visibility = Visibility.Hidden;
+                    select.Text = "";
                 }
             }
-            await getFileWithData.GetFoldersJSON();
+            catch (TaskCanceledException ex)
+            {
+                spinner.Visibility = Visibility.Hidden;
+                select.Text = ex.Message;
+                cancel.Visibility = Visibility.Hidden;
+                path.Text = "";
+            }
         }
 
         private void TreeView_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
-            string FName = ((FileSystemObjectInfo)e.NewValue).FileSystemInfo.FullName;
-            if (!String.IsNullOrEmpty(FName))
+            if (!spinner.IsVisible)
             {
-                FileAttributes attr = System.IO.File.GetAttributes(FName);
-                if ((attr & FileAttributes.Directory) == FileAttributes.Directory)
+                string FName = ((FileSystemObjectInfo)e.NewValue).FileSystemInfo.FullName;
+                if (!String.IsNullOrEmpty(FName))
                 {
-                    GetPath = FName;
-                    path.Text = GetPath;
-                    xml.IsEnabled = json.IsEnabled = true;
+                    FileAttributes attr = System.IO.File.GetAttributes(FName);
+                    if ((attr & FileAttributes.Directory) == FileAttributes.Directory)
+                    {
+                        GetPath = FName;
+                        path.Text = GetPath;
+                        xml.IsEnabled = json.IsEnabled = true;
+                    }
+                    else
+                    {
+                        System.Windows.MessageBox.Show("Select folder, please!");
+                    }
                 }
                 else
                 {
                     System.Windows.MessageBox.Show("Select folder, please!");
                 }
             }
-            else
+        }
+
+        private void Cancel_Click(object sender, RoutedEventArgs e)
+        {
+            if (cts != null)
             {
-                System.Windows.MessageBox.Show("Select folder, please!");
+                cts.Cancel();
             }
         }
     }

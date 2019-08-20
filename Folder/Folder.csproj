@@ -60,17 +60,21 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="Logic\BaseObject.cs" />
-    <Compile Include="Logic\File.cs" />
-    <Compile Include="Logic\FileManager.cs" />
-    <Compile Include="Logic\Folder.cs" />
-    <Compile Include="Logic\FolderManager.cs" />
-    <Compile Include="Logic\GetFileWithData.cs" />
-    <Compile Include="Logic\Interop.cs" />
-    <Compile Include="Logic\ProperyNotifier.cs" />
-    <Compile Include="Logic\ShellManager.cs" />
+    <Compile Include="Classes\BaseObject.cs" />
+    <Compile Include="Classes\File.cs" />
+    <Compile Include="Classes\FileManager.cs" />
+    <Compile Include="Classes\Folder.cs" />
+    <Compile Include="Classes\FolderManager.cs" />
+    <Compile Include="Classes\GetFileWithData.cs" />
+    <Compile Include="Classes\Interop.cs" />
+    <Compile Include="Classes\MyButton.cs" />
+    <Compile Include="Classes\ProperyNotifier.cs" />
+    <Compile Include="Classes\ShellManager.cs" />
     <Compile Include="ShellClasses\DummyFileSystemObjectInfo.cs" />
     <Compile Include="ShellClasses\FileSystemObjectInfo.cs" />
+    <Compile Include="Controls\Spinner.xaml.cs">
+      <DependentUpon>Spinner.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Structs\ShellFileInfo.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
@@ -89,6 +93,10 @@
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Page Include="Controls\Spinner.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs">
@@ -120,6 +128,9 @@
   </ItemGroup>
   <ItemGroup>
     <WCFMetadata Include="Connected Services\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Image\folder.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
